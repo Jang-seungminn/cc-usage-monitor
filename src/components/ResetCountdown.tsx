@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 
 function getNextMonthlyReset(): Date {
   const now = new Date();
-  // First day of next month at 00:00:00 UTC
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
 }
 
@@ -31,26 +30,26 @@ export default function ResetCountdown() {
 
   return (
     <div className="reset-countdown">
-      <span className="reset-countdown-label">Monthly reset in</span>
+      <span className="reset-countdown-label">월간 리셋까지</span>
       <div className="reset-countdown-timer">
         <span className="reset-unit">
           <span className="reset-num">{String(days).padStart(2, "0")}</span>
-          <span className="reset-unit-label">d</span>
+          <span className="reset-unit-label">일</span>
         </span>
         <span className="reset-sep">:</span>
         <span className="reset-unit">
           <span className="reset-num">{String(hours).padStart(2, "0")}</span>
-          <span className="reset-unit-label">h</span>
+          <span className="reset-unit-label">시</span>
         </span>
         <span className="reset-sep">:</span>
         <span className="reset-unit">
           <span className="reset-num">{String(minutes).padStart(2, "0")}</span>
-          <span className="reset-unit-label">m</span>
+          <span className="reset-unit-label">분</span>
         </span>
         <span className="reset-sep">:</span>
         <span className="reset-unit">
           <span className="reset-num">{String(seconds).padStart(2, "0")}</span>
-          <span className="reset-unit-label">s</span>
+          <span className="reset-unit-label">초</span>
         </span>
       </div>
     </div>

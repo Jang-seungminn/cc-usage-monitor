@@ -26,13 +26,11 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Admin key: access to both dashboards */}
       {auth.keyType === "admin" && (
         <Route path="/dashboard" element={<AdminDashboard />} />
       )}
       <Route path="/personal" element={<PersonalDashboard />} />
       <Route path="/settings" element={<Settings />} />
-      {/* Default redirect based on key type */}
       <Route
         path="*"
         element={

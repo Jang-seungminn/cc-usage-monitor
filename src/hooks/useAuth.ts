@@ -17,6 +17,7 @@ interface UseAuthReturn {
   auth: AuthState | null;
   loading: boolean;
   login: (apiKey: string) => Promise<{ success: boolean; error?: string }>;
+  loginAsSubscription: () => void;
   logout: () => Promise<void>;
 }
 
@@ -24,7 +25,6 @@ export function useAuth(): UseAuthReturn {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount, restore session from OS keychain
   useEffect(() => {
     invoke<StoredCredentials | null>("get_stored_credentials")
       .then((creds) => {
@@ -35,9 +35,7 @@ export function useAuth(): UseAuthReturn {
           });
         }
       })
-      .catch(() => {
-        // Keychain unavailable or no stored creds — start unauthenticated
-      })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -48,7 +46,7 @@ export function useAuth(): UseAuthReturn {
       });
 
       if (!result.valid) {
-        return { success: false, error: result.error ?? "Invalid API key." };
+        return { success: false, error: result.error ?? "유효하지 않은 API 키입니다." };
       }
 
       const keyType = result.key_type as "admin" | "personal";
@@ -61,10 +59,14 @@ export function useAuth(): UseAuthReturn {
     []
   );
 
+  const loginAsSubscription = useCallback(() => {
+    setAuth({ apiKey: null, keyType: "subscription" });
+  }, []);
+
   const logout = useCallback(async () => {
     await invoke("clear_credentials").catch(() => {});
     setAuth(null);
   }, []);
 
-  return { auth, loading, login, logout };
+  return { auth, loading, login, loginAsSubscription, logout };
 }

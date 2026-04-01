@@ -8,8 +8,8 @@ export interface UsageEntry {
 }
 
 export interface AuthState {
-  apiKey: string;
-  keyType: "admin" | "personal";
+  apiKey: string | null;
+  keyType: "admin" | "personal" | "subscription";
 }
 
 // Local ~/.claude/ data types (mirror of Rust UsageReport structs)

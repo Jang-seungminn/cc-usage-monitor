@@ -29,7 +29,7 @@ function fmtCost(usd: number): string {
 function fmtDate(iso: string): string {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleDateString(undefined, {
+    return new Date(iso).toLocaleDateString("ko-KR", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -43,7 +43,7 @@ function fmtDate(iso: string): string {
 function shortDay(isoDate: string): string {
   try {
     const d = new Date(isoDate + "T00:00:00Z");
-    return d.toLocaleDateString(undefined, { month: "numeric", day: "numeric", timeZone: "UTC" });
+    return d.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric", timeZone: "UTC" });
   } catch {
     return isoDate.slice(5);
   }
@@ -55,6 +55,12 @@ function estimateTotalCost(sessions: { models: string[]; input_tokens: number; o
     return sum + tokensToUsd(model, s.input_tokens, s.output_tokens);
   }, 0);
 }
+
+const TYPE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  personal: "API",
+  subscription: "구독형",
+};
 
 export default function PersonalDashboard() {
   const { auth, logout } = useAuth();
@@ -86,14 +92,14 @@ export default function PersonalDashboard() {
         <div className="pd-topbar-right">
           {auth && (
             <span className={`pd-badge pd-badge--${auth.keyType}`}>
-              {auth.keyType === "admin" ? "Admin" : "Personal"}
+              {TYPE_LABELS[auth.keyType] ?? auth.keyType}
             </span>
           )}
-          <button className="pd-refresh-btn" onClick={refresh} title="Refresh">
-            ↻ Refresh
+          <button className="pd-refresh-btn" onClick={refresh} title="새로고침">
+            ↻ 새로고침
           </button>
           <button className="pd-logout-btn" onClick={logout}>
-            Sign out
+            로그아웃
           </button>
         </div>
       </header>
@@ -102,13 +108,13 @@ export default function PersonalDashboard() {
         {loading && !report && (
           <div className="pd-loading">
             <span className="login-spinner" />
-            Reading local usage data…
+            로컬 사용 데이터를 읽는 중…
           </div>
         )}
 
         {error && (
           <div className="pd-error">
-            Failed to read local usage data: {error}
+            로컬 사용 데이터 읽기 실패: {error}
           </div>
         )}
 
@@ -116,33 +122,33 @@ export default function PersonalDashboard() {
           <>
             <section>
               <div className="pd-section-header">
-                <span className="pd-section-title">Overview</span>
+                <span className="pd-section-title">개요</span>
               </div>
               <div className="pd-cards">
                 <CostCard
                   icon="💬"
-                  label="Sessions"
+                  label="세션"
                   value={String(report.total_sessions)}
-                  sub="total recorded"
+                  sub="총 기록된 세션"
                   accent="#6366f1"
                 />
                 <CostCard
                   icon="🔢"
-                  label="Total tokens"
+                  label="총 토큰"
                   value={fmtTokens(totalTokens)}
-                  sub={`${fmtTokens(report.total_input_tokens)} in · ${fmtTokens(report.total_output_tokens)} out`}
+                  sub={`${fmtTokens(report.total_input_tokens)} 입력 · ${fmtTokens(report.total_output_tokens)} 출력`}
                   accent="#38bda4"
                 />
                 <CostCard
                   icon="💰"
-                  label="Est. cost"
+                  label="예상 비용"
                   value={fmtCost(totalCost)}
-                  sub="based on token pricing"
+                  sub="토큰 가격 기준"
                   accent="#f59e0b"
                 />
                 <CostCard
                   icon="🤖"
-                  label="Models used"
+                  label="사용 모델"
                   value={String(report.models_used.length)}
                   sub={report.models_used.slice(0, 2).join(", ") || "—"}
                   accent="#8b5cf6"
@@ -155,7 +161,7 @@ export default function PersonalDashboard() {
             {last14Days.length > 0 && (
               <section className="pd-chart-section">
                 <div className="pd-section-header">
-                  <span className="pd-section-title">Daily token usage (last 14 days)</span>
+                  <span className="pd-section-title">일별 토큰 사용량 (최근 14일)</span>
                 </div>
                 <div className="pd-chart-bars">
                   {last14Days.map((d) => {
@@ -165,7 +171,7 @@ export default function PersonalDashboard() {
                         <div
                           className="pd-chart-bar"
                           style={{ height: `${heightPct}%` }}
-                          title={`${d.date}: ${fmtTokens(d.total_tokens)} tokens`}
+                          title={`${d.date}: ${fmtTokens(d.total_tokens)} 토큰`}
                         />
                         <span className="pd-chart-day">{shortDay(d.date)}</span>
                       </div>
@@ -178,8 +184,8 @@ export default function PersonalDashboard() {
             {topWorkspaces.length > 0 && (
               <section className="pd-workspaces-section">
                 <div className="pd-section-header">
-                  <span className="pd-section-title">Workspaces</span>
-                  <span className="pd-section-title">{topWorkspaces.length} active</span>
+                  <span className="pd-section-title">워크스페이스</span>
+                  <span className="pd-section-title">{topWorkspaces.length}개 활성</span>
                 </div>
                 {topWorkspaces.map((ws, i) => {
                   const tokens = ws.input_tokens + ws.output_tokens;
@@ -203,7 +209,7 @@ export default function PersonalDashboard() {
             {recentSessions.length > 0 && (
               <section className="pd-sessions-section">
                 <div className="pd-section-header">
-                  <span className="pd-section-title">Recent sessions</span>
+                  <span className="pd-section-title">최근 세션</span>
                 </div>
                 <div className="pd-sessions-list">
                   {recentSessions.map((s) => {
@@ -222,7 +228,7 @@ export default function PersonalDashboard() {
                         </div>
                         <div className="pd-session-right">
                           <span className="pd-session-tokens">
-                            {fmtTokens(tokens)} tokens
+                            {fmtTokens(tokens)} 토큰
                           </span>
                           <span className="pd-session-model">{shortModel}</span>
                         </div>
@@ -235,7 +241,7 @@ export default function PersonalDashboard() {
 
             {report.total_sessions === 0 && (
               <div className="pd-empty">
-                No local Claude usage data found in ~/.claude/projects/
+                ~/.claude/projects/ 에서 사용 데이터를 찾을 수 없습니다
               </div>
             )}
           </>
