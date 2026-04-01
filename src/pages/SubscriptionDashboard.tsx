@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useAuth } from "../hooks/useAuth";
 import { useSubscriptionUsage } from "../hooks/useSubscriptionUsage";
+import ActivityHeatmap from "../components/ActivityHeatmap";
+import type { UsageReport } from "../lib/types";
 import "../styles/SubscriptionDashboard.css";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -163,6 +166,13 @@ function SkeletonPanel() {
 export default function SubscriptionDashboard() {
   const { auth, logout } = useAuth();
   const { usage, loading, error, refresh } = useSubscriptionUsage();
+  const [localReport, setLocalReport] = useState<UsageReport | null>(null);
+
+  useEffect(() => {
+    invoke<UsageReport>("get_local_usage")
+      .then(setLocalReport)
+      .catch(() => {});
+  }, []);
 
   const planLabel = auth?.keyType === "subscription" ? "구독형" : "Claude";
 
@@ -266,6 +276,11 @@ export default function SubscriptionDashboard() {
         {/* Loading skeleton burn rate */}
         {loading && !usage && (
           <div className="sd-skeleton-burn" />
+        )}
+
+        {/* Activity heatmap */}
+        {localReport && localReport.sessions.length > 0 && (
+          <ActivityHeatmap sessions={localReport.sessions} />
         )}
       </main>
     </div>

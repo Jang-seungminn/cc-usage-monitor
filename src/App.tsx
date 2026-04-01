@@ -33,7 +33,9 @@ function AppRoutes() {
       {auth.keyType === "subscription" && (
         <Route path="/subscription" element={<SubscriptionDashboard />} />
       )}
-      <Route path="/personal" element={<PersonalDashboard />} />
+      {auth.keyType !== "subscription" && (
+        <Route path="/personal" element={<PersonalDashboard />} />
+      )}
       <Route path="/settings" element={<Settings />} />
       <Route
         path="*"
