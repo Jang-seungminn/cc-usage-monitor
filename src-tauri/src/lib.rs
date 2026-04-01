@@ -51,22 +51,13 @@ async fn validate_api_key(api_key: String) -> ValidateResult {
         }
     };
 
-    // Admin keys: validate via /v1/organizations endpoint
-    // Personal keys: validate via /v1/models endpoint
-    let (url, use_admin_header) = if key_type == "admin" {
-        ("https://api.anthropic.com/v1/organizations", true)
-    } else {
-        ("https://api.anthropic.com/v1/models", false)
-    };
-
-    let mut req = client.get(url).header("anthropic-version", "2023-06-01");
-    if use_admin_header {
-        req = req.header("x-api-key", &api_key);
-    } else {
-        req = req.header("x-api-key", &api_key);
-    }
-
-    let res = req.send().await;
+    // Validate by hitting /v1/models — works for both key types
+    let res = client
+        .get("https://api.anthropic.com/v1/models")
+        .header("x-api-key", &api_key)
+        .header("anthropic-version", "2023-06-01")
+        .send()
+        .await;
 
     match res {
         Ok(r) if r.status().is_success() => ValidateResult {
@@ -79,30 +70,23 @@ async fn validate_api_key(api_key: String) -> ValidateResult {
             key_type,
             error: Some("유효하지 않은 API 키입니다.".to_string()),
         },
-        Ok(r) if r.status() == 403 => {
-            // 403 for admin keys may mean the key is valid but lacks
-            // permission for this specific endpoint — treat as valid
-            if key_type == "admin" {
+        Ok(r) => {
+            let status = r.status().as_u16();
+            // 403/404 for admin keys means the key is authenticated but
+            // may lack permission for /v1/models — treat as valid
+            if key_type == "admin" && (status == 403 || status == 404) {
                 ValidateResult {
                     valid: true,
                     key_type,
                     error: None,
                 }
             } else {
+                let body = r.text().await.unwrap_or_default();
                 ValidateResult {
                     valid: false,
                     key_type,
-                    error: Some("API 키에 권한이 없습니다.".to_string()),
+                    error: Some(format!("응답 오류 ({}): {}", status, &body[..body.len().min(200)])),
                 }
-            }
-        },
-        Ok(r) => {
-            let status = r.status();
-            let body = r.text().await.unwrap_or_default();
-            ValidateResult {
-                valid: false,
-                key_type,
-                error: Some(format!("응답 오류 ({}): {}", status, &body[..body.len().min(200)])),
             }
         },
         Err(e) => ValidateResult {
