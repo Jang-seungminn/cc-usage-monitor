@@ -136,57 +136,105 @@ fn get_rate_limits(path: Option<String>) -> Result<RateLimitsInfo, String> {
     statusline::read_rate_limits(path)
 }
 
+// --- OAuth Usage API (real-time data from Anthropic) ---
+
+#[derive(Deserialize, Debug)]
+struct OAuthUsageEntry {
+    utilization: Option<f64>,
+    resets_at: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
+struct OAuthExtraUsage {
+    is_enabled: Option<bool>,
+    monthly_limit: Option<f64>,
+    used_credits: Option<f64>,
+    utilization: Option<f64>,
+}
+
+#[derive(Deserialize, Debug)]
+struct OAuthUsageResponse {
+    five_hour: Option<OAuthUsageEntry>,
+    seven_day: Option<OAuthUsageEntry>,
+    seven_day_sonnet: Option<OAuthUsageEntry>,
+    extra_usage: Option<OAuthExtraUsage>,
+}
+
 #[derive(Serialize, Debug)]
 pub struct SubscriptionUsage {
-    pub session_messages: u32,
-    pub session_limit: u32,
     pub session_pct: f64,
     pub session_reset_at: String,
-    pub weekly_messages: u32,
-    pub weekly_limit: u32,
     pub weekly_pct: f64,
     pub weekly_reset_at: String,
-    pub burn_rate_per_hour: f64,
+    pub weekly_sonnet_pct: Option<f64>,
+    pub weekly_sonnet_reset_at: Option<String>,
+    pub extra_usage_enabled: bool,
+    pub extra_usage_pct: Option<f64>,
+    pub extra_usage_used: Option<f64>,
+    pub extra_usage_limit: Option<f64>,
     pub burn_rate_status: String,
     pub burn_rate_label: String,
 }
 
+fn get_oauth_token() -> Result<String, String> {
+    let output = std::process::Command::new("security")
+        .args(["find-generic-password", "-s", "Claude Code-credentials", "-w"])
+        .output()
+        .map_err(|e| format!("Failed to run security command: {}", e))?;
+
+    if !output.status.success() {
+        return Err("Could not read OAuth token from Keychain".to_string());
+    }
+
+    let raw = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&raw).map_err(|e| format!("Failed to parse keychain data: {}", e))?;
+
+    parsed["claudeAiOauth"]["accessToken"]
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| "OAuth token not found in keychain data".to_string())
+}
+
 #[tauri::command]
-fn get_subscription_usage(app: tauri::AppHandle) -> Result<SubscriptionUsage, String> {
-    let rate = statusline::read_rate_limits(None)?;
-    let plan = settings::read_settings(&app)?;
+async fn get_subscription_usage() -> Result<SubscriptionUsage, String> {
+    let token = get_oauth_token()?;
 
-    let session_pct = rate.five_hour_pct.unwrap_or(0.0);
-    let weekly_pct = rate.seven_day_pct.unwrap_or(0.0);
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
 
-    let session_limit = plan.session_limit;
-    let weekly_limit = plan.weekly_limit;
+    let resp = client
+        .get("https://api.anthropic.com/api/oauth/usage")
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Accept", "application/json")
+        .header("anthropic-beta", "oauth-2025-04-20")
+        .send()
+        .await
+        .map_err(|e| format!("API request failed: {}", e))?;
 
-    let session_messages = ((session_pct / 100.0) * session_limit as f64).round() as u32;
-    let weekly_messages = ((weekly_pct / 100.0) * weekly_limit as f64).round() as u32;
+    if !resp.status().is_success() {
+        return Err(format!("API returned status: {}", resp.status()));
+    }
 
-    // Convert epoch seconds to ISO string
-    let epoch_to_iso = |epoch: Option<i64>| -> String {
-        match epoch {
-            Some(ts) => {
-                let dt = chrono::DateTime::from_timestamp(ts, 0)
-                    .unwrap_or_else(|| chrono::Utc::now());
-                dt.to_rfc3339()
-            }
-            None => chrono::Utc::now().to_rfc3339(),
-        }
-    };
+    let usage: OAuthUsageResponse = resp
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse API response: {}", e))?;
 
-    let session_reset_at = epoch_to_iso(rate.five_hour_resets_at);
-    let weekly_reset_at = epoch_to_iso(rate.seven_day_resets_at);
+    let session_pct = usage.five_hour.as_ref().and_then(|e| e.utilization).unwrap_or(0.0);
+    let session_reset_at = usage.five_hour.as_ref().and_then(|e| e.resets_at.clone()).unwrap_or_default();
+    let weekly_pct = usage.seven_day.as_ref().and_then(|e| e.utilization).unwrap_or(0.0);
+    let weekly_reset_at = usage.seven_day.as_ref().and_then(|e| e.resets_at.clone()).unwrap_or_default();
+    let weekly_sonnet_pct = usage.seven_day_sonnet.as_ref().and_then(|e| e.utilization);
+    let weekly_sonnet_reset_at = usage.seven_day_sonnet.as_ref().and_then(|e| e.resets_at.clone());
 
-    // Burn rate: messages per hour based on session usage and elapsed time
-    let session_reset_epoch = rate.five_hour_resets_at.unwrap_or(0);
-    let session_window_secs = (plan.session_reset_hours * 3600.0) as i64;
-    let session_start_epoch = session_reset_epoch - session_window_secs;
-    let now_epoch = chrono::Utc::now().timestamp();
-    let elapsed_hours = ((now_epoch - session_start_epoch) as f64 / 3600.0).max(0.1);
-    let burn_rate_per_hour = session_messages as f64 / elapsed_hours;
+    let extra = &usage.extra_usage;
+    let extra_usage_enabled = extra.as_ref().and_then(|e| e.is_enabled).unwrap_or(false);
+    let extra_usage_pct = extra.as_ref().and_then(|e| e.utilization);
+    let extra_usage_used = extra.as_ref().and_then(|e| e.used_credits);
+    let extra_usage_limit = extra.as_ref().and_then(|e| e.monthly_limit);
 
     let burn_rate_status = if session_pct >= 80.0 || weekly_pct >= 80.0 {
         "critical"
@@ -197,21 +245,22 @@ fn get_subscription_usage(app: tauri::AppHandle) -> Result<SubscriptionUsage, St
     };
 
     let burn_rate_label = match burn_rate_status {
-        "critical" => format!("사용량 주의 · {:.1} msg/hr", burn_rate_per_hour),
-        "warning" => format!("보통 · {:.1} msg/hr", burn_rate_per_hour),
-        _ => format!("양호 · {:.1} msg/hr", burn_rate_per_hour),
+        "critical" => format!("사용량 주의 · 세션 {:.0}%", session_pct),
+        "warning" => format!("보통 · 세션 {:.0}%", session_pct),
+        _ => format!("양호 · 세션 {:.0}%", session_pct),
     };
 
     Ok(SubscriptionUsage {
-        session_messages,
-        session_limit,
         session_pct,
         session_reset_at,
-        weekly_messages,
-        weekly_limit,
         weekly_pct,
         weekly_reset_at,
-        burn_rate_per_hour,
+        weekly_sonnet_pct,
+        weekly_sonnet_reset_at,
+        extra_usage_enabled,
+        extra_usage_pct,
+        extra_usage_used,
+        extra_usage_limit,
         burn_rate_status: burn_rate_status.to_string(),
         burn_rate_label,
     })

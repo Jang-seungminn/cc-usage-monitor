@@ -30,14 +30,13 @@ function computeCountdown(resetAt: string): Countdown {
   const seconds = totalSec % 60;
 
   if (hours >= 24) {
-    const days = Math.floor(hours / 24);
-    const remHours = hours % 24;
-    // e.g. "월요일 18:00" style
     const d = new Date(resetAt);
     const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
     const dayName = dayNames[d.getDay()];
     const hh = String(d.getHours()).padStart(2, "0");
     const mm = String(d.getMinutes()).padStart(2, "0");
+    const days = Math.floor(hours / 24);
+    const remHours = hours % 24;
     return { hours, minutes, seconds, label: `${dayName}요일 ${hh}:${mm} 리셋 · ${days}일 ${remHours}시간 후` };
   }
 
@@ -65,19 +64,17 @@ function CountdownTicker({ resetAt, label }: { resetAt: string; label: string })
   );
 }
 
-// ── Metric panel ──────────────────────────────────────────────────────────────
+// ── Usage panel (percentage-based) ───────────────────────────────────────────
 
-interface MetricPanelProps {
+interface UsagePanelProps {
   title: string;
   subtitle: string;
   pct: number;
-  messages: number;
-  limit: number;
   resetAt: string;
   resetLabel: string;
 }
 
-function MetricPanel({ title, subtitle, pct, messages, limit, resetAt, resetLabel }: MetricPanelProps) {
+function UsagePanel({ title, subtitle, pct, resetAt, resetLabel }: UsagePanelProps) {
   const accentClass = getAccentClass(pct);
   const clampedPct = Math.min(pct, 100);
 
@@ -104,12 +101,6 @@ function MetricPanel({ title, subtitle, pct, messages, limit, resetAt, resetLabe
       </div>
 
       <div className="sd-panel-footer">
-        <span className="sd-msg-count">
-          <span className="sd-msg-current">{messages}</span>
-          <span className="sd-msg-sep"> / </span>
-          <span className="sd-msg-limit">{limit}</span>
-          <span className="sd-msg-label"> 메시지</span>
-        </span>
         <CountdownTicker resetAt={resetAt} label={resetLabel} />
       </div>
     </div>
@@ -130,6 +121,27 @@ function BurnRateBanner({ label, status }: { label: string; status: string }) {
     <div className={`sd-burn ${cls}`}>
       <span className="sd-burn-icon">{icon}</span>
       <span className="sd-burn-label">{label}</span>
+    </div>
+  );
+}
+
+// ── Extra usage card ─────────────────────────────────────────────────────────
+
+function ExtraUsageCard({ pct, used, limit }: { pct: number; used: number; limit: number }) {
+  const accentClass = getAccentClass(pct);
+  return (
+    <div className={`sd-extra-card ${accentClass}`}>
+      <div className="sd-extra-header">
+        <span className="sd-extra-title">추가 사용량 크레딧</span>
+        <span className="sd-extra-badge">활성</span>
+      </div>
+      <div className="sd-extra-bar-track">
+        <div className={`sd-extra-bar-fill ${accentClass}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+      </div>
+      <div className="sd-extra-footer">
+        <span>${used.toFixed(0)} / ${limit.toFixed(0)} 크레딧</span>
+        <span>{formatPct(pct)}% 사용</span>
+      </div>
     </div>
   );
 }
@@ -176,7 +188,7 @@ export default function SubscriptionDashboard() {
       {/* ── Main ── */}
       <main className="sd-main">
 
-        {/* Error: backend not ready */}
+        {/* Error */}
         {error && (
           <div className="sd-error-card">
             <div className="sd-error-icon">⚠</div>
@@ -184,7 +196,8 @@ export default function SubscriptionDashboard() {
               <div className="sd-error-title">사용량 데이터를 불러올 수 없습니다</div>
               <div className="sd-error-msg">{error}</div>
               <div className="sd-error-hint">
-                계산 엔진(SKI-13)이 아직 준비 중입니다. 백엔드 Engineer가 구현을 완료하면 자동으로 표시됩니다.
+                macOS Keychain에서 OAuth 토큰을 읽지 못했거나 API 호출에 실패했습니다.
+                Claude Code에 로그인된 상태인지 확인해주세요.
               </div>
             </div>
             <button className="sd-btn sd-btn--ghost" onClick={refresh}>
@@ -202,27 +215,45 @@ export default function SubscriptionDashboard() {
             </>
           ) : usage ? (
             <>
-              <MetricPanel
+              <UsagePanel
                 title="현재 세션"
-                subtitle="세션 사용량"
+                subtitle="5시간 윈도우"
                 pct={usage.session_pct}
-                messages={usage.session_messages}
-                limit={usage.session_limit}
                 resetAt={usage.session_reset_at}
                 resetLabel="세션 리셋"
               />
-              <MetricPanel
+              <UsagePanel
                 title="주간 한도"
-                subtitle="이번 주 누적"
+                subtitle="전체 모델 · 7일"
                 pct={usage.weekly_pct}
-                messages={usage.weekly_messages}
-                limit={usage.weekly_limit}
                 resetAt={usage.weekly_reset_at}
                 resetLabel="주간 리셋"
               />
             </>
           ) : null}
         </div>
+
+        {/* Sonnet weekly panel */}
+        {usage && usage.weekly_sonnet_pct != null && usage.weekly_sonnet_reset_at && (
+          <div className="sd-panels sd-panels--secondary">
+            <UsagePanel
+              title="주간 Sonnet"
+              subtitle="Sonnet 전용 · 7일"
+              pct={usage.weekly_sonnet_pct}
+              resetAt={usage.weekly_sonnet_reset_at}
+              resetLabel="Sonnet 리셋"
+            />
+          </div>
+        )}
+
+        {/* Extra usage */}
+        {usage && usage.extra_usage_enabled && usage.extra_usage_pct != null && (
+          <ExtraUsageCard
+            pct={usage.extra_usage_pct}
+            used={usage.extra_usage_used ?? 0}
+            limit={usage.extra_usage_limit ?? 0}
+          />
+        )}
 
         {/* Burn rate */}
         {usage && (

@@ -74,22 +74,27 @@ export interface UsageReport {
   models_used: string[];
 }
 
-// Subscription usage data returned by get_subscription_usage() Tauri IPC (SKI-13)
+// Subscription usage data from Anthropic OAuth API (real-time)
 export interface SubscriptionUsage {
-  // Current session
-  session_messages: number;
-  session_limit: number;
+  // Current session (5-hour window)
   session_pct: number;           // 0–100
   session_reset_at: string;      // ISO timestamp
 
-  // Weekly
-  weekly_messages: number;
-  weekly_limit: number;
+  // Weekly (7-day, all models)
   weekly_pct: number;            // 0–100
   weekly_reset_at: string;       // ISO timestamp
 
+  // Weekly Sonnet only
+  weekly_sonnet_pct: number | null;
+  weekly_sonnet_reset_at: string | null;
+
+  // Extra usage (overuse credits)
+  extra_usage_enabled: boolean;
+  extra_usage_pct: number | null;
+  extra_usage_used: number | null;  // credits used
+  extra_usage_limit: number | null; // monthly limit
+
   // Burn rate
-  burn_rate_per_hour: number;    // messages/hr
   burn_rate_status: "on_track" | "warning" | "critical";
-  burn_rate_label: string;       // e.g. "On track · 8.0 msg/hr"
+  burn_rate_label: string;
 }
