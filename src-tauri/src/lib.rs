@@ -37,6 +37,16 @@ fn detect_key_type(api_key: &str) -> &'static str {
 async fn validate_api_key(api_key: String) -> ValidateResult {
     let key_type = detect_key_type(&api_key).to_string();
 
+    // Admin keys use a separate Admin API — /v1/models returns 401 for them.
+    // Accept admin keys by prefix; actual validation happens when fetching data.
+    if key_type == "admin" {
+        return ValidateResult {
+            valid: true,
+            key_type,
+            error: None,
+        };
+    }
+
     let client = match reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .build()
@@ -46,12 +56,12 @@ async fn validate_api_key(api_key: String) -> ValidateResult {
             return ValidateResult {
                 valid: false,
                 key_type,
-                error: Some(format!("Failed to create HTTP client: {}", e)),
+                error: Some(format!("HTTP 클라이언트 오류: {}", e)),
             }
         }
     };
 
-    // Validate by hitting /v1/models — works for both key types
+    // Personal keys: validate via /v1/models
     let res = client
         .get("https://api.anthropic.com/v1/models")
         .header("x-api-key", &api_key)
@@ -72,21 +82,11 @@ async fn validate_api_key(api_key: String) -> ValidateResult {
         },
         Ok(r) => {
             let status = r.status().as_u16();
-            // 403/404 for admin keys means the key is authenticated but
-            // may lack permission for /v1/models — treat as valid
-            if key_type == "admin" && (status == 403 || status == 404) {
-                ValidateResult {
-                    valid: true,
-                    key_type,
-                    error: None,
-                }
-            } else {
-                let body = r.text().await.unwrap_or_default();
-                ValidateResult {
-                    valid: false,
-                    key_type,
-                    error: Some(format!("응답 오류 ({}): {}", status, &body[..body.len().min(200)])),
-                }
+            let body = r.text().await.unwrap_or_default();
+            ValidateResult {
+                valid: false,
+                key_type,
+                error: Some(format!("응답 오류 ({}): {}", status, &body[..body.len().min(200)])),
             }
         },
         Err(e) => ValidateResult {
