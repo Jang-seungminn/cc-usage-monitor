@@ -1,6 +1,7 @@
 mod local;
 mod settings;
 mod statusline;
+mod tracked_users;
 
 use local::UsageReport;
 use serde::{Deserialize, Serialize};
@@ -271,6 +272,46 @@ fn save_plan_settings(app: tauri::AppHandle, settings: PlanSettings) -> Result<(
     settings::write_settings(&app, &settings)
 }
 
+// --- Multi-user store ---
+
+#[tauri::command]
+fn get_tracked_users(app: tauri::AppHandle) -> Result<Vec<tracked_users::TrackedUser>, String> {
+    tracked_users::read_tracked_users(&app)
+}
+
+#[tauri::command]
+fn add_tracked_user(
+    app: tauri::AppHandle,
+    name: String,
+    api_key: String,
+    workspace_label: Option<String>,
+) -> Result<tracked_users::TrackedUser, String> {
+    tracked_users::add_user(&app, name, api_key, workspace_label)
+}
+
+#[tauri::command]
+fn remove_tracked_user(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    tracked_users::remove_user(&app, id)
+}
+
+#[tauri::command]
+fn update_tracked_user(
+    app: tauri::AppHandle,
+    id: String,
+    name: Option<String>,
+    workspace_label: Option<String>,
+) -> Result<tracked_users::TrackedUser, String> {
+    tracked_users::update_user(&app, id, name, workspace_label)
+}
+
+#[tauri::command]
+async fn get_all_users_usage(
+    app: tauri::AppHandle,
+) -> Result<Vec<tracked_users::UserUsageResult>, String> {
+    let users = tracked_users::read_tracked_users(&app)?;
+    Ok(tracked_users::fetch_all_usage(users).await)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -285,6 +326,11 @@ pub fn run() {
             save_plan_settings,
             get_rate_limits,
             get_subscription_usage,
+            get_tracked_users,
+            add_tracked_user,
+            remove_tracked_user,
+            update_tracked_user,
+            get_all_users_usage,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
