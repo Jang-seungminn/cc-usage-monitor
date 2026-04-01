@@ -21,7 +21,7 @@ export default function Login() {
 
   function handleSubscription() {
     loginAsSubscription();
-    navigate("/personal");
+    navigate("/subscription");
   }
 
   async function handleApiSubmit(e: React.FormEvent) {
