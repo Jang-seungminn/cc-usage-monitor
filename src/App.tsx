@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./hooks/useAuth";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import PersonalDashboard from "./pages/PersonalDashboard";
+import SubscriptionDashboard from "./pages/SubscriptionDashboard";
 import Settings from "./pages/Settings";
 
 function AppRoutes() {
@@ -29,13 +30,22 @@ function AppRoutes() {
       {auth.keyType === "admin" && (
         <Route path="/dashboard" element={<AdminDashboard />} />
       )}
+      {auth.keyType === "subscription" && (
+        <Route path="/subscription" element={<SubscriptionDashboard />} />
+      )}
       <Route path="/personal" element={<PersonalDashboard />} />
       <Route path="/settings" element={<Settings />} />
       <Route
         path="*"
         element={
           <Navigate
-            to={auth.keyType === "admin" ? "/dashboard" : "/personal"}
+            to={
+              auth.keyType === "admin"
+                ? "/dashboard"
+                : auth.keyType === "subscription"
+                ? "/subscription"
+                : "/personal"
+            }
             replace
           />
         }
