@@ -1,9 +1,11 @@
 mod local;
 mod settings;
+mod statusline;
 
 use local::UsageReport;
 use serde::{Deserialize, Serialize};
 use settings::PlanSettings;
+use statusline::RateLimitsInfo;
 
 const KEYRING_SERVICE: &str = "cc-usage-monitor";
 const KEYRING_USER: &str = "anthropic-api-key";
@@ -130,6 +132,11 @@ fn get_plan_settings(app: tauri::AppHandle) -> Result<PlanSettings, String> {
 }
 
 #[tauri::command]
+fn get_rate_limits(path: Option<String>) -> Result<RateLimitsInfo, String> {
+    statusline::read_rate_limits(path)
+}
+
+#[tauri::command]
 fn save_plan_settings(app: tauri::AppHandle, settings: PlanSettings) -> Result<(), String> {
     settings::write_settings(&app, &settings)
 }
@@ -146,6 +153,7 @@ pub fn run() {
             get_local_usage,
             get_plan_settings,
             save_plan_settings,
+            get_rate_limits,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
