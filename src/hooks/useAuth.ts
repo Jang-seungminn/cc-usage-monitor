@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { AuthState } from "../lib/types";
+import React from "react";
 
 interface ValidateResult {
   valid: boolean;
@@ -13,7 +14,7 @@ interface StoredCredentials {
   key_type: string;
 }
 
-interface UseAuthReturn {
+interface AuthContextValue {
   auth: AuthState | null;
   loading: boolean;
   login: (apiKey: string) => Promise<{ success: boolean; error?: string }>;
@@ -21,7 +22,9 @@ interface UseAuthReturn {
   logout: () => Promise<void>;
 }
 
-export function useAuth(): UseAuthReturn {
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -50,9 +53,7 @@ export function useAuth(): UseAuthReturn {
       }
 
       const keyType = result.key_type as "admin" | "personal";
-
       await invoke("store_credentials", { apiKey, keyType });
-
       setAuth({ apiKey, keyType });
       return { success: true };
     },
@@ -68,5 +69,13 @@ export function useAuth(): UseAuthReturn {
     setAuth(null);
   }, []);
 
-  return { auth, loading, login, loginAsSubscription, logout };
+  const value = { auth, loading, login, loginAsSubscription, logout };
+
+  return React.createElement(AuthContext.Provider, { value }, children);
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 }
