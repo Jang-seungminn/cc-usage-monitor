@@ -1,7 +1,9 @@
 mod local;
+mod settings;
 
 use local::UsageReport;
 use serde::{Deserialize, Serialize};
+use settings::PlanSettings;
 
 const KEYRING_SERVICE: &str = "cc-usage-monitor";
 const KEYRING_USER: &str = "anthropic-api-key";
@@ -122,6 +124,16 @@ fn get_local_usage() -> Result<UsageReport, String> {
     local::read_local_usage()
 }
 
+#[tauri::command]
+fn get_plan_settings(app: tauri::AppHandle) -> Result<PlanSettings, String> {
+    settings::read_settings(&app)
+}
+
+#[tauri::command]
+fn save_plan_settings(app: tauri::AppHandle, settings: PlanSettings) -> Result<(), String> {
+    settings::write_settings(&app, &settings)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -132,6 +144,8 @@ pub fn run() {
             get_stored_credentials,
             clear_credentials,
             get_local_usage,
+            get_plan_settings,
+            save_plan_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
