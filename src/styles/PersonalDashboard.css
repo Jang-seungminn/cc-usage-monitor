@@ -1,0 +1,457 @@
+/* ── Personal Dashboard Layout ──────────────────────────────── */
+
+.pd-root {
+  min-height: 100vh;
+  background: #0a0a0b;
+  color: #f0f0f2;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Top Bar ──────────────────────────────────────────────────── */
+
+.pd-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.5rem;
+  border-bottom: 1px solid #1e1e22;
+  background: #0d0d0f;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.pd-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.pd-logo-icon {
+  font-size: 1.125rem;
+}
+
+.pd-topbar-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #f5f5f7;
+  letter-spacing: -0.01em;
+}
+
+.pd-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pd-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.pd-badge--admin {
+  background: rgba(147, 112, 219, 0.18);
+  color: #c39ef0;
+  border: 1px solid rgba(147, 112, 219, 0.28);
+}
+
+.pd-badge--personal {
+  background: rgba(56, 189, 148, 0.13);
+  color: #4de0a6;
+  border: 1px solid rgba(56, 189, 148, 0.22);
+}
+
+.pd-refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: transparent;
+  border: 1px solid #2e2e33;
+  border-radius: 6px;
+  color: #888;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  padding: 0.3125rem 0.625rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.pd-refresh-btn:hover {
+  border-color: #444;
+  color: #bbb;
+}
+
+.pd-logout-btn {
+  background: transparent;
+  border: 1px solid #2e2e33;
+  border-radius: 6px;
+  color: #666;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  padding: 0.3125rem 0.625rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.pd-logout-btn:hover {
+  border-color: #e55;
+  color: #f87171;
+}
+
+/* ── Content ──────────────────────────────────────────────────── */
+
+.pd-content {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Section headers ─────────────────────────────────────────── */
+
+.pd-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.875rem;
+}
+
+.pd-section-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Stat cards row ──────────────────────────────────────────── */
+
+.pd-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+/* ── CostCard ────────────────────────────────────────────────── */
+
+.cost-card {
+  background: #111113;
+  border: 1px solid #1e1e22;
+  border-radius: 10px;
+  padding: 1rem 1.125rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  transition: border-color 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+.cost-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--card-accent, #6366f1);
+  border-radius: 10px 0 0 10px;
+  opacity: 0.7;
+}
+
+.cost-card:hover {
+  border-color: #2a2a30;
+}
+
+.cost-card-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.cost-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.cost-card-label {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cost-card-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f5f5f7;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.cost-card-sub {
+  font-size: 0.75rem;
+  color: #555;
+  margin-top: 0.125rem;
+}
+
+/* ── Reset Countdown ─────────────────────────────────────────── */
+
+.reset-countdown {
+  background: #111113;
+  border: 1px solid #1e1e22;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.reset-countdown-label {
+  font-size: 0.8125rem;
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.reset-countdown-timer {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.reset-unit {
+  display: flex;
+  align-items: baseline;
+  gap: 0.125rem;
+}
+
+.reset-num {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f5f5f7;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.reset-unit-label {
+  font-size: 0.6875rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.reset-sep {
+  color: #333;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.125rem;
+}
+
+/* ── Daily Bar Chart ─────────────────────────────────────────── */
+
+.pd-chart-section {
+  background: #111113;
+  border: 1px solid #1e1e22;
+  border-radius: 10px;
+  padding: 1.125rem 1.25rem;
+}
+
+.pd-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.375rem;
+  height: 80px;
+}
+
+.pd-chart-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 1;
+}
+
+.pd-chart-bar {
+  width: 100%;
+  background: #6366f1;
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+  transition: height 0.3s ease;
+}
+
+.pd-chart-day {
+  font-size: 0.625rem;
+  color: #444;
+  white-space: nowrap;
+}
+
+/* ── UsageBar ────────────────────────────────────────────────── */
+
+.usage-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3125rem;
+}
+
+.usage-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.usage-bar-label {
+  font-size: 0.8125rem;
+  color: #bbb;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+
+.usage-bar-value {
+  font-size: 0.75rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+.usage-bar-track {
+  height: 6px;
+  background: #1e1e22;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.usage-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* ── Workspace section ───────────────────────────────────────── */
+
+.pd-workspaces-section {
+  background: #111113;
+  border: 1px solid #1e1e22;
+  border-radius: 10px;
+  padding: 1.125rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* ── Sessions list ───────────────────────────────────────────── */
+
+.pd-sessions-section {
+  background: #111113;
+  border: 1px solid #1e1e22;
+  border-radius: 10px;
+  padding: 1.125rem 1.25rem;
+}
+
+.pd-sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pd-session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid #17171a;
+  gap: 1rem;
+}
+
+.pd-session-row:last-child {
+  border-bottom: none;
+}
+
+.pd-session-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.pd-session-workspace {
+  font-size: 0.8125rem;
+  color: #ccc;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-session-time {
+  font-size: 0.6875rem;
+  color: #555;
+}
+
+.pd-session-right {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-shrink: 0;
+}
+
+.pd-session-tokens {
+  font-size: 0.75rem;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-session-model {
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  background: #1a1a1f;
+  color: #666;
+  border: 1px solid #222;
+  white-space: nowrap;
+}
+
+/* ── Empty / Loading / Error states ─────────────────────────── */
+
+.pd-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  gap: 0.75rem;
+  color: #555;
+  font-size: 0.875rem;
+}
+
+.pd-error {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 1rem 1.125rem;
+  color: #f87171;
+  font-size: 0.875rem;
+}
+
+.pd-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #444;
+  font-size: 0.875rem;
+}
