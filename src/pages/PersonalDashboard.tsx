@@ -4,6 +4,8 @@ import { tokensToUsd } from "../lib/pricing";
 import UsageBar from "../components/UsageBar";
 import CostCard from "../components/CostCard";
 import ResetCountdown from "../components/ResetCountdown";
+import UsageChart from "../components/UsageChart";
+import ActivityHeatmap from "../components/ActivityHeatmap";
 import "../styles/PersonalDashboard.css";
 
 const WORKSPACE_COLORS = [
@@ -260,6 +262,19 @@ export default function PersonalDashboard() {
                 </div>
               </section>
             )}
+
+            {/* Usage time series chart */}
+            <section className="pd-chart-section">
+              <UsageChart
+                sessions={report.sessions}
+                dailyAggregates={report.daily_aggregates}
+              />
+            </section>
+
+            {/* Activity heatmap */}
+            <section className="pd-chart-section">
+              <ActivityHeatmap sessions={report.sessions} />
+            </section>
 
             {/* Workspaces */}
             {topWorkspaces.length > 0 && (

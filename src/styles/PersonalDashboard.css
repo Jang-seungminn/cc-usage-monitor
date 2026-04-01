@@ -539,3 +539,279 @@
   color: #444;
   font-size: 0.875rem;
 }
+
+/* ── Usage Chart ────────────────────────────────────────────────────────────── */
+
+.uc-root {
+  width: 100%;
+  background: #0d0d10;
+  border: 1px solid #1a1a1f;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.uc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.uc-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.uc-filters {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.uc-filter-btn {
+  font-family: "DM Mono", monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0.1875rem 0.5625rem;
+  border-radius: 5px;
+  border: 1px solid #1e1e24;
+  background: transparent;
+  color: #555;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.uc-filter-btn:hover {
+  border-color: #2e2e38;
+  color: #888;
+}
+
+.uc-filter-btn--active {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.28);
+  color: #a5b4fc;
+}
+
+.uc-chart-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.uc-svg {
+  display: block;
+  overflow: visible;
+}
+
+.uc-tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: #13131a;
+  border: 1px solid #252530;
+  border-radius: 7px;
+  padding: 0.3125rem 0.625rem;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.uc-tooltip-label {
+  font-family: "DM Mono", monospace;
+  font-size: 0.5625rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.uc-tooltip-row {
+  font-family: "DM Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.uc-tooltip-row--primary   { color: #818cf8; }
+.uc-tooltip-row--secondary { color: #fbbf24; font-size: 0.6875rem; }
+
+.uc-x-labels {
+  position: relative;
+  height: 1.125rem;
+  margin-top: 0.1875rem;
+}
+
+.uc-x-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: "DM Mono", monospace;
+  font-size: 0.5625rem;
+  color: #333;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.uc-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.uc-legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.uc-legend-dot--primary   { background: #6366f1; }
+.uc-legend-dot--secondary { background: #f59e0b; margin-left: 0.625rem; }
+
+.uc-legend-label {
+  font-family: "DM Mono", monospace;
+  font-size: 0.625rem;
+  color: #444;
+}
+
+/* ── Activity Heatmap ───────────────────────────────────────────────────────── */
+
+.ah-root {
+  width: 100%;
+  background: #0d0d10;
+  border: 1px solid #1a1a1f;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem 1.125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ah-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.ah-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.ah-peak {
+  font-family: "DM Mono", monospace;
+  font-size: 0.625rem;
+  color: #4b4b5e;
+}
+
+.ah-empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: #333;
+}
+
+.ah-grid-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+
+.ah-day-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.ah-day-label {
+  font-family: "DM Mono", monospace;
+  font-size: 0.5625rem;
+  color: #2e2e38;
+  width: 1rem;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.ah-day-label--spacer {
+  height: 16px; /* matches ah-hour-row height */
+}
+
+.ah-grid-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 280px;
+}
+
+.ah-row {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 2px;
+}
+
+.ah-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  min-height: 10px;
+  cursor: default;
+  transition: opacity 0.1s;
+}
+
+.ah-cell:hover {
+  opacity: 0.75;
+  outline: 1px solid rgba(99, 102, 241, 0.5);
+  outline-offset: 0;
+}
+
+.ah-hour-row {
+  margin-top: 2px;
+}
+
+.ah-hour-cell {
+  font-family: "DM Mono", monospace;
+  font-size: 0.5rem;
+  color: #2a2a34;
+  text-align: center;
+  height: 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  user-select: none;
+}
+
+.ah-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  justify-content: flex-end;
+}
+
+.ah-legend-scale {
+  display: flex;
+  gap: 2px;
+}
+
+.ah-legend-cell {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+}
+
+.ah-legend-label {
+  font-family: "DM Mono", monospace;
+  font-size: 0.5625rem;
+  color: #333;
+}
