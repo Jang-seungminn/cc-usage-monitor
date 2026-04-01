@@ -1,9 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useAuth } from "../hooks/useAuth";
 import { useAnthropicAdmin } from "../hooks/useAnthropicAdmin";
 import HorseRaceTrack from "../components/HorseRaceTrack";
 import UserManagementModal from "../components/UserManagementModal";
 import "../styles/AdminDashboard.css";
+
+interface OrgMemberKey {
+  key_id: string;
+  key_name: string;
+  partial_hint: string;
+  status: string;
+  workspace_id: string | null;
+}
+
+interface OrgMember {
+  user_id: string;
+  email: string;
+  name: string;
+  role: string;
+  api_keys: OrgMemberKey[];
+}
 
 // ── Monthly reset countdown ───────────────────────────────────────────────────
 
@@ -36,9 +53,31 @@ function MonthlyCountdown() {
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
-  const { logout } = useAuth();
+  const { auth, logout } = useAuth();
   const { users, loading, error, lastUpdated, refresh } = useAnthropicAdmin();
   const [showModal, setShowModal] = useState(false);
+  const [orgMembers, setOrgMembers] = useState<OrgMember[]>([]);
+  const [orgLoading, setOrgLoading] = useState(false);
+  const [orgError, setOrgError] = useState<string | null>(null);
+
+  // Auto-discover org members on mount
+  const discoverOrg = useCallback(async () => {
+    if (!auth?.apiKey) return;
+    setOrgLoading(true);
+    setOrgError(null);
+    try {
+      const members = await invoke<OrgMember[]>("get_org_members", { adminKey: auth.apiKey });
+      setOrgMembers(members);
+    } catch (err) {
+      setOrgError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setOrgLoading(false);
+    }
+  }, [auth?.apiKey]);
+
+  useEffect(() => {
+    discoverOrg();
+  }, [discoverOrg]);
 
   function handleSaved() {
     refresh();
@@ -106,6 +145,47 @@ export default function AdminDashboard() {
           loading={loading}
           onAddUser={() => setShowModal(true)}
         />
+
+        {/* Org members auto-discovered */}
+        {orgMembers.length > 0 && (
+          <div className="ad-org-section">
+            <h3 className="ad-org-title">조직 멤버 ({orgMembers.length}명)</h3>
+            <div className="ad-org-grid">
+              {orgMembers.map((m) => (
+                <div key={m.user_id} className="ad-org-card">
+                  <div className="ad-org-card-header">
+                    <span className="ad-org-name">{m.name}</span>
+                    <span className={`ad-org-role ad-org-role--${m.role}`}>{m.role}</span>
+                  </div>
+                  <div className="ad-org-email">{m.email}</div>
+                  {m.api_keys.length > 0 ? (
+                    <div className="ad-org-keys">
+                      {m.api_keys.map((k) => (
+                        <div key={k.key_id} className="ad-org-key">
+                          <span className="ad-org-key-name">{k.key_name}</span>
+                          <span className="ad-org-key-hint">{k.partial_hint}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="ad-org-no-keys">API 키 없음</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {orgLoading && (
+          <div className="ad-org-loading">조직 멤버 불러오는 중...</div>
+        )}
+
+        {orgError && !orgLoading && (
+          <div className="ad-org-error">
+            <span>⚠ 조직 정보 조회 실패: </span>
+            <span>{orgError}</span>
+          </div>
+        )}
       </main>
 
       {/* ── User management modal ── */}

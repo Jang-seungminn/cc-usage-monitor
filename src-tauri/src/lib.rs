@@ -326,6 +326,127 @@ async fn get_all_users_usage(
     Ok(tracked_users::fetch_all_usage(users).await)
 }
 
+// --- Admin API: auto-discover org members & API keys ---
+
+#[derive(Serialize, Deserialize, Debug)]
+struct OrgUser {
+    id: String,
+    email: String,
+    name: String,
+    role: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct OrgUsersResponse {
+    data: Vec<OrgUser>,
+    has_more: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct OrgApiKey {
+    id: String,
+    name: String,
+    partial_key_hint: Option<String>,
+    status: String,
+    created_by: Option<serde_json::Value>,
+    workspace_id: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
+struct OrgApiKeysResponse {
+    data: Vec<OrgApiKey>,
+    has_more: Option<bool>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct OrgMember {
+    pub user_id: String,
+    pub email: String,
+    pub name: String,
+    pub role: String,
+    pub api_keys: Vec<OrgMemberKey>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct OrgMemberKey {
+    pub key_id: String,
+    pub key_name: String,
+    pub partial_hint: String,
+    pub status: String,
+    pub workspace_id: Option<String>,
+}
+
+#[tauri::command]
+async fn get_org_members(admin_key: String) -> Result<Vec<OrgMember>, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+
+    // 1. Fetch all users
+    let users_resp = client
+        .get("https://api.anthropic.com/v1/organizations/users?limit=100")
+        .header("x-api-key", &admin_key)
+        .header("anthropic-version", "2023-06-01")
+        .send()
+        .await
+        .map_err(|e| format!("사용자 목록 조회 실패: {}", e))?;
+
+    if !users_resp.status().is_success() {
+        let status = users_resp.status();
+        let body = users_resp.text().await.unwrap_or_default();
+        return Err(format!("Admin API 오류 ({}): {}", status, &body[..body.len().min(300)]));
+    }
+
+    let users_data: OrgUsersResponse = users_resp.json().await
+        .map_err(|e| format!("사용자 목록 파싱 실패: {}", e))?;
+
+    // 2. Fetch all API keys
+    let keys_resp = client
+        .get("https://api.anthropic.com/v1/organizations/api_keys?limit=100&status=active")
+        .header("x-api-key", &admin_key)
+        .header("anthropic-version", "2023-06-01")
+        .send()
+        .await
+        .map_err(|e| format!("API 키 목록 조회 실패: {}", e))?;
+
+    let keys_data: OrgApiKeysResponse = if keys_resp.status().is_success() {
+        keys_resp.json().await.unwrap_or(OrgApiKeysResponse { data: vec![], has_more: None })
+    } else {
+        OrgApiKeysResponse { data: vec![], has_more: None }
+    };
+
+    // 3. Map API keys to users by created_by.id
+    let members: Vec<OrgMember> = users_data.data.into_iter().map(|user| {
+        let user_keys: Vec<OrgMemberKey> = keys_data.data.iter()
+            .filter(|k| {
+                k.created_by.as_ref()
+                    .and_then(|cb| cb.get("id"))
+                    .and_then(|id| id.as_str())
+                    .map(|id| id == user.id)
+                    .unwrap_or(false)
+            })
+            .map(|k| OrgMemberKey {
+                key_id: k.id.clone(),
+                key_name: k.name.clone(),
+                partial_hint: k.partial_key_hint.clone().unwrap_or_default(),
+                status: k.status.clone(),
+                workspace_id: k.workspace_id.clone(),
+            })
+            .collect();
+
+        OrgMember {
+            user_id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            api_keys: user_keys,
+        }
+    }).collect();
+
+    Ok(members)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -345,6 +466,7 @@ pub fn run() {
             remove_tracked_user,
             update_tracked_user,
             get_all_users_usage,
+            get_org_members,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
