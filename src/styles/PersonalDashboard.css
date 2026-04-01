@@ -263,6 +263,90 @@
   margin-bottom: 0.125rem;
 }
 
+/* ── Context Window Section (Subscription) ──────────────────── */
+
+.pd-context-section {
+  background: #111113;
+  border: 1px solid #1e1e22;
+  border-radius: 10px;
+  padding: 1.125rem 1.25rem;
+}
+
+.pd-context-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.pd-context-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.pd-context-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pd-context-ws {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #ccc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-context-meta {
+  font-size: 0.6875rem;
+  color: #555;
+  white-space: nowrap;
+}
+
+.pd-context-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pd-context-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: #1e1e22;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.pd-context-bar-fill {
+  height: 100%;
+  background: #6366f1;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.pd-context-bar-fill--warn {
+  background: #f59e0b;
+}
+
+.pd-context-pct {
+  font-size: 0.6875rem;
+  color: #666;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  min-width: 140px;
+  text-align: right;
+}
+
+/* ── Subscription badge ─────────────────────────────────────── */
+
+.pd-badge--subscription {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
 /* ── Daily Bar Chart ─────────────────────────────────────────── */
 
 .pd-chart-section {
