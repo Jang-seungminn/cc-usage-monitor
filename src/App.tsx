@@ -1,44 +1,55 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./hooks/useAuth";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import PersonalDashboard from "./pages/PersonalDashboard";
 import Settings from "./pages/Settings";
 
-function RequireAuth({ children }: { children: React.ReactNode }) {
-  const hasKey = !!sessionStorage.getItem("apiKey");
-  return hasKey ? <>{children}</> : <Navigate to="/" replace />;
+function AppRoutes() {
+  const { auth, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="app-loading">
+        <span className="login-spinner" />
+      </div>
+    );
+  }
+
+  if (!auth) {
+    return (
+      <Routes>
+        <Route path="*" element={<Login />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <Routes>
+      {/* Admin key: access to both dashboards */}
+      {auth.keyType === "admin" && (
+        <Route path="/dashboard" element={<AdminDashboard />} />
+      )}
+      <Route path="/personal" element={<PersonalDashboard />} />
+      <Route path="/settings" element={<Settings />} />
+      {/* Default redirect based on key type */}
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to={auth.keyType === "admin" ? "/dashboard" : "/personal"}
+            replace
+          />
+        }
+      />
+    </Routes>
+  );
 }
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route
-          path="/dashboard"
-          element={
-            <RequireAuth>
-              <AdminDashboard />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/personal"
-          element={
-            <RequireAuth>
-              <PersonalDashboard />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <RequireAuth>
-              <Settings />
-            </RequireAuth>
-          }
-        />
-      </Routes>
+      <AppRoutes />
     </BrowserRouter>
   );
 }
