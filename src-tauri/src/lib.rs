@@ -136,6 +136,87 @@ fn get_rate_limits(path: Option<String>) -> Result<RateLimitsInfo, String> {
     statusline::read_rate_limits(path)
 }
 
+#[derive(Serialize, Debug)]
+pub struct SubscriptionUsage {
+    pub session_messages: u32,
+    pub session_limit: u32,
+    pub session_pct: f64,
+    pub session_reset_at: String,
+    pub weekly_messages: u32,
+    pub weekly_limit: u32,
+    pub weekly_pct: f64,
+    pub weekly_reset_at: String,
+    pub burn_rate_per_hour: f64,
+    pub burn_rate_status: String,
+    pub burn_rate_label: String,
+}
+
+#[tauri::command]
+fn get_subscription_usage(app: tauri::AppHandle) -> Result<SubscriptionUsage, String> {
+    let rate = statusline::read_rate_limits(None)?;
+    let plan = settings::read_settings(&app)?;
+
+    let session_pct = rate.five_hour_pct.unwrap_or(0.0);
+    let weekly_pct = rate.seven_day_pct.unwrap_or(0.0);
+
+    let session_limit = plan.session_limit;
+    let weekly_limit = plan.weekly_limit;
+
+    let session_messages = ((session_pct / 100.0) * session_limit as f64).round() as u32;
+    let weekly_messages = ((weekly_pct / 100.0) * weekly_limit as f64).round() as u32;
+
+    // Convert epoch seconds to ISO string
+    let epoch_to_iso = |epoch: Option<i64>| -> String {
+        match epoch {
+            Some(ts) => {
+                let dt = chrono::DateTime::from_timestamp(ts, 0)
+                    .unwrap_or_else(|| chrono::Utc::now());
+                dt.to_rfc3339()
+            }
+            None => chrono::Utc::now().to_rfc3339(),
+        }
+    };
+
+    let session_reset_at = epoch_to_iso(rate.five_hour_resets_at);
+    let weekly_reset_at = epoch_to_iso(rate.seven_day_resets_at);
+
+    // Burn rate: messages per hour based on session usage and elapsed time
+    let session_reset_epoch = rate.five_hour_resets_at.unwrap_or(0);
+    let session_window_secs = (plan.session_reset_hours * 3600.0) as i64;
+    let session_start_epoch = session_reset_epoch - session_window_secs;
+    let now_epoch = chrono::Utc::now().timestamp();
+    let elapsed_hours = ((now_epoch - session_start_epoch) as f64 / 3600.0).max(0.1);
+    let burn_rate_per_hour = session_messages as f64 / elapsed_hours;
+
+    let burn_rate_status = if session_pct >= 80.0 || weekly_pct >= 80.0 {
+        "critical"
+    } else if session_pct >= 50.0 || weekly_pct >= 50.0 {
+        "warning"
+    } else {
+        "on_track"
+    };
+
+    let burn_rate_label = match burn_rate_status {
+        "critical" => format!("사용량 주의 · {:.1} msg/hr", burn_rate_per_hour),
+        "warning" => format!("보통 · {:.1} msg/hr", burn_rate_per_hour),
+        _ => format!("양호 · {:.1} msg/hr", burn_rate_per_hour),
+    };
+
+    Ok(SubscriptionUsage {
+        session_messages,
+        session_limit,
+        session_pct,
+        session_reset_at,
+        weekly_messages,
+        weekly_limit,
+        weekly_pct,
+        weekly_reset_at,
+        burn_rate_per_hour,
+        burn_rate_status: burn_rate_status.to_string(),
+        burn_rate_label,
+    })
+}
+
 #[tauri::command]
 fn save_plan_settings(app: tauri::AppHandle, settings: PlanSettings) -> Result<(), String> {
     settings::write_settings(&app, &settings)
@@ -154,6 +235,7 @@ pub fn run() {
             get_plan_settings,
             save_plan_settings,
             get_rate_limits,
+            get_subscription_usage,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
